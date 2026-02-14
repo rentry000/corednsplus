@@ -42,11 +42,7 @@ jobs:
         run: |
           git clone https://github.com/coredns/coredns.git --depth 1 --branch ${{ steps.get_version.outputs.latest_version }} coredns-src
 
-      - name: Install dependencies for unbound plugin (cgo + libunbound)
-        if: steps.check_update.outputs.update_needed == 'true'
-        run: |
-          sudo apt update
-          sudo apt install -y libunbound-dev pkg-config build-essential
+      # 无需安装 libunbound-dev 等（因为不加 unbound 插件）
 
       - name: Add third-party plugins to plugin.cfg (防重复添加)
         if: steps.check_update.outputs.update_needed == 'true'
@@ -54,7 +50,7 @@ jobs:
           cd coredns-src
           grep -q "^blocklist:" plugin.cfg || echo "blocklist:github.com/relekang/coredns-blocklist" >> plugin.cfg
           grep -q "^finalize:" plugin.cfg || echo "finalize:github.com/tmeckel/coredns-finalizer" >> plugin.cfg
-          # unbound 已 archived 6 年，兼容性风险高，建议注释掉或移除
+          # unbound 已移除（兼容性太差，6年未维护）
           # grep -q "^unbound:" plugin.cfg || echo "unbound:github.com/coredns/unbound" >> plugin.cfg
           grep -q "^git:" plugin.cfg || echo "git:github.com/miekg/coredns-git" >> plugin.cfg
 
@@ -65,17 +61,17 @@ jobs:
           go generate
           go mod tidy
 
-      - name: Build CoreDNS for Linux arm64
+      - name: Build CoreDNS for Linux arm64 (no cgo needed)
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          # unbound 需要 CGO_ENABLED=1；如果注释掉 unbound 可改为 CGO_ENABLED=0（静态二进制）
-          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o ../corednsplus
+          # unbound 已移除，可用 CGO_ENABLED=0 保持静态二进制
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ../corednsplus
 
       - name: Move binary to root and update VERSION
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
-          mv ../corednsplus .   # 移到仓库根目录（可选，根据你的 commit 需要）
+          mv ../corednsplus .   # 移到仓库根目录
           echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
 
       - name: Commit and push changes
@@ -84,5 +80,5 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add corednsplus VERSION
-          git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins" || echo "No changes to commit"
+          git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins (no unbound)" || echo "No changes to commit"
           git push
