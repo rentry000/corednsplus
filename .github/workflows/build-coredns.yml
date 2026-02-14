@@ -2,102 +2,91 @@ name: Build CoreDNS Plus (arm64 with extra plugins)
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # 每天 UTC 00:00 检查上游更新
-  workflow_dispatch:       # 支持手动触发
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: read           # 确保 GITHUB_TOKEN 有读取公共仓库的权限
+  contents: write           # 必須設置為 write 才能 push 編譯好的文件和 tag
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout this repository (corednsplus)
+      - name: Checkout this repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # 完整拉取，確保 git push 順暢
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'   # CoreDNS 常用版本，必要时可升级
+          go-version: '1.22'
+          cache: true       # 開啟 Go 快取，加速後續建置
 
       - name: Check for CoreDNS upstream update
         id: check-update
         run: |
-          # 获取上游最新 release tag
-          LATEST_TAG=$(curl -s https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name' || echo "v1.11.3")  # fallback 一个已知版本
+          LATEST_TAG=$(curl -s https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name')
           echo "Latest upstream CoreDNS tag: $LATEST_TAG"
-
+          
+          CURRENT_TAG="none"
           if [ -f current_tag.txt ]; then
             CURRENT_TAG=$(cat current_tag.txt)
-            echo "Current recorded tag: $CURRENT_TAG"
-            if [ "$CURRENT_TAG" = "$LATEST_TAG" ]; then
-              echo "No update needed (same tag)"
-              echo "update_needed=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          else
-            echo "No current_tag.txt found → first run or reset, forcing build"
           fi
 
-          echo "Update needed: building for $LATEST_TAG"
-          echo "update_needed=true" >> $GITHUB_OUTPUT
-          echo "new_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          if [ "$CURRENT_TAG" = "$LATEST_TAG" ]; then
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "new_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Build CoreDNS + plugins (Linux arm64) if needed
+      - name: Build CoreDNS + plugins (Linux arm64)
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
           NEW_TAG=${{ steps.check-update.outputs.new_tag }}
-          echo "Building CoreDNS $NEW_TAG for linux/arm64"
+          
+          # 使用 HTTPS Clone 避開 SSH Key 問題
+          git clone --depth 1 --branch $NEW_TAG https://github.com/coredns/coredns.git coredns_source
+          cd coredns_source
 
-          # 优先使用 SSH clone（公共仓库无需密钥，避免 HTTPS auth 坑）
-          git clone --depth 1 --branch $NEW_TAG git@github.com:coredns/coredns.git || {
-            echo "SSH clone failed, fallback to HTTPS with token"
-            git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-            git clone --depth 1 --branch $NEW_TAG https://github.com/coredns/coredns.git
-          }
+          # 修改 plugin.cfg
+          # 注意：CoreDNS 插件順序很重要，通常放在 hosts 之後
+          # 這裡使用暫存檔來確保格式正確
+          sed -i '/hosts:hosts/a \
+          blocker:github.com/GustavoKatel/coredns-blocker\
+          block:github.com/spr-networks/coredns-block\
+          blocklist:github.com/relekang/coredns-blocklist\
+          filter:github.com/wranders/coredns-filter\
+          finalizer:github.com/tmeckel/coredns-finalizer\
+          geoip:github.com/miekg/geoip\
+          rpzd:github.com/coredns/rpzd' plugin.cfg
 
-          cd coredns
-
-          # 获取所有第三方插件（@latest 取最新版）
+          # 更新 go.mod 並下載依賴
+          go generate
           go get github.com/GustavoKatel/coredns-blocker@latest
           go get github.com/spr-networks/coredns-block@latest
           go get github.com/relekang/coredns-blocklist@latest
-          go get github.com/icyflame/blocker@latest
           go get github.com/wranders/coredns-filter@latest
           go get github.com/tmeckel/coredns-finalizer@latest
           go get github.com/miekg/geoip@latest
           go get github.com/coredns/rpzd@latest
+          go mod tidy
 
-          # 编辑 plugin.cfg：在 hosts:hosts 后面插入插件（避免冲突可手动调整顺序）
-          sed -i '/hosts:hosts/a \
-          blocker:github.com/GustavoKatel/coredns-blocker \
-          block:github.com/spr-networks/coredns-block \
-          blocklist:github.com/relekang/coredns-blocklist \
-          blocker:github.com/icyflame/blocker \
-          filter:github.com/wranders/coredns-filter \
-          finalizer:github.com/tmeckel/coredns-finalizer \
-          geoip:github.com/miekg/geoip \
-          rpzd:github.com/coredns/rpzd' plugin.cfg
-
-          # 生成代码 + 构建 arm64 版本
-          go generate
+          # 編譯 arm64
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-            go build -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$NEW_TAG" -o coredns
+            go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$NEW_TAG" -o ../coredns-arm64
 
-          # 移到仓库根目录
-          mv coredns ../coredns-arm64
-          echo "$NEW_TAG" > ../current_tag.txt
+          cd ..
+          echo "$NEW_TAG" > current_tag.txt
 
-          ls -lh ../coredns-arm64   # 调试：显示文件大小
-
-      - name: Commit and push the new binary + tag file
+      - name: Commit and push changes
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
-          NEW_TAG=${{ steps.check-update.outputs.new_tag }}
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
           git add coredns-arm64 current_tag.txt
-          git commit -m "chore: update to CoreDNS $NEW_TAG + extra plugins (linux/arm64)" || echo "No changes to commit (maybe same build)"
-          git push || echo "Push skipped or failed (check token permissions)"
+          git commit -m "chore: update to CoreDNS ${{ steps.check-update.outputs.new_tag }} (arm64)"
+          git push
