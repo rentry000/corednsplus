@@ -50,7 +50,7 @@ jobs:
           echo "blocklist:github.com/relekang/coredns-blocklist" >> plugin.cfg
           echo "finalize:github.com/tmeckel/coredns-finalizer" >> plugin.cfg
           echo "unbound:github.com/coredns/unbound" >> plugin.cfg
-          echo "mysql:github.com/cloud66-oss/coredns_mysql" >> plugin.cfg
+          # echo "mysql:github.com/cloud66-oss/coredns_mysql" >> plugin.cfg
           # Add git plugin for remote zone loading
           echo "git:github.com/miekg/coredns-git" >> plugin.cfg
           # Add more third-party plugins that support remote downloading if known
