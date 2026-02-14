@@ -80,15 +80,16 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          
-          # 初始化 Git LFS（确保 workflow 环境支持 LFS）
-          git lfs install
-          
-          # 添加文件（.gitattributes 应已存在于 repo，如果首次会自动生成指针）
+
+          # 确保 LFS 已初始化（预装了也会安全运行）
+          git lfs install --force || true   # --force 覆盖旧 hooks，|| true 忽略已存在警告
+
+          # 如果你担心 LFS 未生效，可加这一行检查（可选，调试用）
+          # git lfs version && git lfs env
+
           git add corednsplus VERSION
-          
-          # Commit（如果无变化则跳过）
+
           git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins (no unbound)" || echo "No changes to commit"
-          
-          # Push 时会自动处理 LFS 对象上传
+
+          # Push 时 Git 会自动处理 LFS 对象上传（前提是 .gitattributes 已配置）
           git push
