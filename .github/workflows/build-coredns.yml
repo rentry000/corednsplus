@@ -46,22 +46,24 @@ jobs:
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          # Add adblock plugin using a version with go.mod
-          echo "blocker:github.com/GustavoKatel/coredns-blocker" >> plugin.cfg
-          # Skip git plugin as repository is not publicly available; consider alternatives if needed
+          # Add blocklist plugin for ad blocking
+          echo "blocklist:github.com/relekang/coredns-blocklist" >> plugin.cfg
+          # Add git plugin for remote zone loading
+          echo "git:github.com/miekg/coredns-git" >> plugin.cfg
+          # Add more third-party plugins that support remote downloading if known
+          # For example, if there's another one: echo "another:github.com/user/another" >> plugin.cfg
 
-      - name: Fetch dependencies for plugins
+      - name: Generate and tidy modules
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          go get github.com/GustavoKatel/coredns-blocker
+          go generate
           go mod tidy
 
       - name: Build CoreDNS for Linux arm64
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          go generate
           GOOS=linux GOARCH=arm64 go build -o ../corednsplus
 
       - name: Move binary to root and update VERSION
