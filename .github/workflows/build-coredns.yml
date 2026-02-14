@@ -46,19 +46,37 @@ jobs:
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          # Add blocklist plugin for ad blocking (supports remote loading)
+          # Add blocklist plugin for ad blocking
           echo "blocklist:github.com/relekang/coredns-blocklist" >> plugin.cfg
-          # Add git plugin for remote git zone loading
+          # Add git plugin for remote zone loading
           echo "git:github.com/miekg/coredns-git" >> plugin.cfg
-          # Add redis plugin for remote redis backend
-          echo "redis:github.com/codysnider/coredns-redis" >> plugin.cfg
-          # Add mysql plugin for remote mysql backend
-          echo "mysql:github.com/cloud66-oss/coredns_mysql" >> plugin.cfg
-          # Add netbox plugin for remote netbox api
-          echo "netbox:github.com/oz123/coredns-netbox-plugin" >> plugin.cfg
+          # Add more third-party plugins that support remote downloading if known
+          # For example, if there's another one: echo "another:github.com/user/another" >> plugin.cfg
 
-      - name: Fetch dependencies for plugins
+      - name: Generate and tidy modules
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          go get github.com/re
+          go generate
+          go mod tidy
+
+      - name: Build CoreDNS for Linux arm64
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          cd coredns-src
+          GOOS=linux GOARCH=arm64 go build -o ../corednsplus
+
+      - name: Move binary to root and update VERSION
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          mv corednsplus ./
+          echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
+
+      - name: Commit and push changes
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add corednsplus VERSION
+          git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins"
+          git push
