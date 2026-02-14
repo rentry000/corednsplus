@@ -66,6 +66,7 @@ jobs:
         run: |
           cd coredns-src
           go generate
+          go env -w GOSUMDB=off
           go mod tidy
 
       - name: Build CoreDNS for Linux arm64 (no cgo needed)
