@@ -75,21 +75,17 @@ jobs:
           # mv ../corednsplus .   # 移到仓库根目录
           echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
 
-      - name: Commit and push changes with Git LFS
+      - name: Create or Update GitHub Release with binary
         if: steps.check_update.outputs.update_needed == 'true'
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-
-          # 确保 LFS 已初始化（预装了也会安全运行）
-          git lfs install --force || true   # --force 覆盖旧 hooks，|| true 忽略已存在警告
-
-          # 如果你担心 LFS 未生效，可加这一行检查（可选，调试用）
-          git lfs version && git lfs env
-
-          git add corednsplus VERSION
-
-          git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins (no unbound)" || echo "No changes to commit"
-
-          # Push 时 Git 会自动处理 LFS 对象上传（前提是 .gitattributes 已配置）
-          git push
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.latest_version }}
+          name: CoreDNS Plus ${{ steps.get_version.outputs.latest_version }}
+          files: corednsplus
+          body: |
+            Built with plugins: blocklist, finalize, git
+            Commit: ${{ github.sha }}
+            - Download `corednsplus` from assets below (arm64 Linux binary)
+          draft: false
+          prerelease: false
+          generate_release_notes: true
