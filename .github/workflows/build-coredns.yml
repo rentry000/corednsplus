@@ -1,20 +1,22 @@
-name: Build CoreDNS Plus (arm64 with extra plugins)
+name: Build CoreDNS Plus (arm64 with All Extra Plugins)
 
 on:
   schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
+    - cron: '0 0 * * *'   # 每天 UTC 00:00 檢查更新
+  workflow_dispatch:      # 支援手動觸發
 
 permissions:
-  contents: write
+  contents: write         # 允許推送到倉庫
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout this repository
+      - name: Checkout corednsplus
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -22,87 +24,82 @@ jobs:
           go-version: '1.22'
           cache: true
 
-      - name: Check for CoreDNS upstream update
-        id: check-update
+      - name: Check Upstream Update
+        id: check
         run: |
-          # 使用 -e 確保出錯時立即停止
-          set -e
-          LATEST_TAG=$(curl -s https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name')
+          UPSTREAM_TAG=$(curl -s https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name')
+          echo "Latest Tag: $UPSTREAM_TAG"
           
-          if [ "$LATEST_TAG" = "null" ] || [ -z "$LATEST_TAG" ]; then
-            echo "::error::無法獲取上游 Tag，請檢查 GitHub API 限制"
-            exit 1
-          fi
-          
-          echo "Latest upstream CoreDNS tag: $LATEST_TAG"
           CURRENT_TAG=$(cat current_tag.txt 2>/dev/null || echo "none")
-
-          if [ "$CURRENT_TAG" = "$LATEST_TAG" ]; then
-            echo "update_needed=false" >> $GITHUB_OUTPUT
-          else
+          
+          if [ "$UPSTREAM_TAG" != "$CURRENT_TAG" ]; then
             echo "update_needed=true" >> $GITHUB_OUTPUT
-            echo "new_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+            echo "tag=$UPSTREAM_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build CoreDNS + plugins (Linux arm64)
-        if: steps.check-update.outputs.update_needed == 'true'
+      - name: Build CoreDNS Plus
+        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          # --- 開啟除錯模式 ---
-          set -x 
-          
-          NEW_TAG=${{ steps.check-update.outputs.new_tag }}
-          
-          # 1. Clone 原始碼
-          git clone --depth 1 --branch $NEW_TAG https://github.com/coredns/coredns.git coredns_source || { echo "Clone failed"; exit 1; }
-          cd coredns_source
+          set -e
+          TAG=${{ steps.check.outputs.tag }}
+          [ -z "$TAG" ] && TAG=$(curl -s https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name')
 
-          # 2. 修改 plugin.cfg
-          # 使用 cat 確認修改前的內容（可選）
+          echo "Building CoreDNS $TAG with extra plugins..."
+          
+          # 1. Clone 上游代碼
+          git clone --depth 1 --branch "$TAG" https://github.com/coredns/coredns.git build_dir
+          cd build_dir
+
+          # 2. 注入第三方插件到 plugin.cfg
+          # 這些是常見的廣告攔截、過濾與功能增強插件
+          # 注意：順序會影響執行邏輯，通常建議放在 hosts 之後
           sed -i '/hosts:hosts/a \
           blocker:github.com/GustavoKatel/coredns-blocker\
           block:github.com/spr-networks/coredns-block\
           blocklist:github.com/relekang/coredns-blocklist\
           filter:github.com/wranders/coredns-filter\
-          finalizer:github.com/tmeckel/coredns-finalizer\
           geoip:github.com/miekg/geoip\
-          rpzd:github.com/coredns/rpzd' plugin.cfg
+          rpzd:github.com/coredns/rpzd\
+          finalizer:github.com/tmeckel/coredns-finalizer' plugin.cfg
 
-          # 3. 執行 Go 指令並捕獲錯誤
-          echo "Running go generate..."
-          go generate || { echo "::error::go generate 失敗"; exit 1; }
-
-          echo "Fetching plugins..."
-          # 增加 -v 參數查看下載進度
-          go get -v github.com/GustavoKatel/coredns-blocker@latest
-          go get -v github.com/spr-networks/coredns-block@latest
-          go get -v github.com/relekang/coredns-blocklist@latest
-          go get -v github.com/wranders/coredns-filter@latest
-          go get -v github.com/tmeckel/coredns-finalizer@latest
-          go get -v github.com/miekg/geoip@latest
-          go get -v github.com/coredns/rpzd@latest
+          # 3. 更新 Go 依賴並生成代碼
+          # 這是最關鍵的一步，go generate 會根據 plugin.cfg 更新指令集
+          go generate
           
-          go mod tidy -v || { echo "::error::go mod tidy 失敗"; exit 1; }
+          # 下載所有遠端插件源碼
+          go get github.com/GustavoKatel/coredns-blocker@latest
+          go get github.com/spr-networks/coredns-block@latest
+          go get github.com/relekang/coredns-blocklist@latest
+          go get github.com/wranders/coredns-filter@latest
+          go get github.com/miekg/geoip@latest
+          go get github.com/coredns/rpzd@latest
+          go get github.com/tmeckel/coredns-finalizer@latest
+          
+          # 自動整理 go.mod (解決依賴衝突)
+          go mod tidy
 
-          # 4. 編譯（加入 -v 參數顯示編譯中的文件）
-          echo "Starting build for arm64..."
+          # 4. 編譯 Linux arm64 靜態二進制文件
+          echo "Starting compilation for linux/arm64..."
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-            go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$NEW_TAG" -o ../coredns-arm64
+            go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$TAG-plus" -o ../coredns-arm64
 
           cd ..
-          echo "$NEW_TAG" > current_tag.txt
-          set +x
+          echo "$TAG" > current_tag.txt
 
-      - name: Commit and push changes
-        if: steps.check-update.outputs.update_needed == 'true'
+      - name: Push to Repository
+        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           
           git add coredns-arm64 current_tag.txt
-          # 只有在有變動時才 commit，避免無效報錯
+          
+          # 只有在有變更時才 commit
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No changes to commit."
           else
-            git commit -m "chore: update to CoreDNS ${{ steps.check-update.outputs.new_tag }} (arm64)"
-            git push || { echo "::error::Push 失敗，請檢查權限"; exit 1; }
+            git commit -m "Build: CoreDNS ${{ steps.check.outputs.tag }} arm64 with plugins"
+            git push origin main
           fi
