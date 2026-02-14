@@ -72,7 +72,7 @@ jobs:
       - name: Move binary to root and update VERSION
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
-          mv ../corednsplus .   # 移到仓库根目录
+          # mv ../corednsplus .   # 移到仓库根目录
           echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
 
       - name: Commit and push changes
