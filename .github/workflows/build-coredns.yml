@@ -46,12 +46,20 @@ jobs:
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          # Add adblock plugin (using blocker as an example for ad blocking)
+          # Add adblock plugin
           echo "blocker:github.com/icyflame/blocker" >> plugin.cfg
-          # Add other third-party plugins that support remote downloading (e.g., git for remote zone loading)
-          echo "git:github.com/coredns/git" >> plugin.cfg
-          # Optionally add more, like warnlist if it fits (adjust path if needed)
-          # echo "warnlist:github.com/infobloxopen/coredns-plugins/warnlist" >> plugin.cfg
+          # Add git plugin for remote zone loading
+          echo "git:github.com/miekg/coredns-git" >> plugin.cfg
+          # Optionally add more plugins here, e.g.,
+          # echo "redis:github.com/example/redis" >> plugin.cfg  # Replace with actual if needed
+
+      - name: Fetch dependencies for plugins
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          cd coredns-src
+          go get github.com/icyflame/blocker
+          go get github.com/miekg/coredns-git
+          go mod tidy
 
       - name: Build CoreDNS for Linux arm64
         if: steps.check_update.outputs.update_needed == 'true'
@@ -63,7 +71,7 @@ jobs:
       - name: Move binary to root and update VERSION
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
-          mv coredns-src/../corednsplus ./
+          mv corednsplus ./
           echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
 
       - name: Commit and push changes
