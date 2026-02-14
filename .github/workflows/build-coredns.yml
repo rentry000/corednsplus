@@ -91,6 +91,10 @@ jobs:
           go env -w GOSUMDB=sum.golang.google.cn
           # 打印 go 环境，方便排查
           go env
+          echo "Go version used:"
+          go version
+          echo "go.mod go line:"
+          grep '^go ' go.mod
           # unbound 已移除，可用 CGO_ENABLED=0 保持静态二进制
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ../corednsplus 2>&1
 
