@@ -85,7 +85,7 @@ jobs:
           git lfs install --force || true   # --force 覆盖旧 hooks，|| true 忽略已存在警告
 
           # 如果你担心 LFS 未生效，可加这一行检查（可选，调试用）
-          # git lfs version && git lfs env
+          git lfs version && git lfs env
 
           git add corednsplus VERSION
 
