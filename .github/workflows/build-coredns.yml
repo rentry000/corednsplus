@@ -1,105 +1,76 @@
-name: Build CoreDNS Plus (arm64 with All Extra Plugins)
+name: Update and Build CoreDNS Plus
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # 每天 UTC 00:00 檢查更新
-  workflow_dispatch:      # 支援手動觸發
-
-permissions:
-  contents: write         # 允許推送到倉庫
+    - cron: '0 0 * * *'  # Run daily to check for updates
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout corednsplus
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
-          cache: true
+          go-version: '1.22.x'  # Use a recent Go version compatible with CoreDNS
 
-      - name: Check Upstream Update
-        id: check
+      - name: Get latest CoreDNS release version
+        id: get_version
         run: |
-          UPSTREAM_TAG=$(curl -s https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name')
-          echo "Latest Tag: $UPSTREAM_TAG"
-          
-          CURRENT_TAG=$(cat current_tag.txt 2>/dev/null || echo "none")
-          
-          if [ "$UPSTREAM_TAG" != "$CURRENT_TAG" ]; then
+          LATEST_TAG=$(curl -sL https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name')
+          echo "latest_version=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Check if update is needed
+        id: check_update
+        run: |
+          if [ -f VERSION ]; then
+            CURRENT=$(cat VERSION)
+            if [ "\( CURRENT" != " \){{ steps.get_version.outputs.latest_version }}" ]; then
+              echo "update_needed=true" >> $GITHUB_OUTPUT
+            else
+              echo "update_needed=false" >> $GITHUB_OUTPUT
+            fi
+          else
             echo "update_needed=true" >> $GITHUB_OUTPUT
-            echo "tag=$UPSTREAM_TAG" >> $GITHUB_OUTPUT
-          else
-            echo "update_needed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build CoreDNS Plus
-        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
+      - name: Clone CoreDNS source if update needed
+        if: steps.check_update.outputs.update_needed == 'true'
         run: |
-          set -e
-          TAG=${{ steps.check.outputs.tag }}
-          [ -z "$TAG" ] && TAG=$(curl -s https://api.github.com/repos/coredns/coredns/releases/latest | jq -r '.tag_name')
+          git clone https://github.com/coredns/coredns.git --depth 1 --branch ${{ steps.get_version.outputs.latest_version }} coredns-src
 
-          echo "Building CoreDNS $TAG with extra plugins..."
-          
-          # 1. Clone 上游代碼
-          git clone --depth 1 --branch "$TAG" https://github.com/coredns/coredns.git build_dir
-          cd build_dir
+      - name: Add third-party plugins to plugin.cfg
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          cd coredns-src
+          # Add adblock plugin (using blocker as an example for ad blocking)
+          echo "blocker:github.com/icyflame/blocker" >> plugin.cfg
+          # Add other third-party plugins that support remote downloading (e.g., git for remote zone loading)
+          echo "git:github.com/coredns/git" >> plugin.cfg
+          # Optionally add more, like warnlist if it fits (adjust path if needed)
+          # echo "warnlist:github.com/infobloxopen/coredns-plugins/warnlist" >> plugin.cfg
 
-          # 2. 注入第三方插件到 plugin.cfg
-          # 這些是常見的廣告攔截、過濾與功能增強插件
-          # 注意：順序會影響執行邏輯，通常建議放在 hosts 之後
-          sed -i '/hosts:hosts/a \
-          blocker:github.com/GustavoKatel/coredns-blocker\
-          block:github.com/spr-networks/coredns-block\
-          blocklist:github.com/relekang/coredns-blocklist\
-          filter:github.com/wranders/coredns-filter\
-          geoip:github.com/miekg/geoip\
-          rpzd:github.com/coredns/rpzd\
-          finalizer:github.com/tmeckel/coredns-finalizer' plugin.cfg
-
-          # 3. 更新 Go 依賴並生成代碼
-          # 這是最關鍵的一步，go generate 會根據 plugin.cfg 更新指令集
+      - name: Build CoreDNS for Linux arm64
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          cd coredns-src
           go generate
-          
-          # 下載所有遠端插件源碼
-          go get github.com/GustavoKatel/coredns-blocker@latest
-          go get github.com/spr-networks/coredns-block@latest
-          go get github.com/relekang/coredns-blocklist@latest
-          go get github.com/wranders/coredns-filter@latest
-          go get github.com/miekg/geoip@latest
-          go get github.com/coredns/rpzd@latest
-          go get github.com/tmeckel/coredns-finalizer@latest
-          
-          # 自動整理 go.mod (解決依賴衝突)
-          go mod tidy
+          GOOS=linux GOARCH=arm64 go build -o ../corednsplus
 
-          # 4. 編譯 Linux arm64 靜態二進制文件
-          echo "Starting compilation for linux/arm64..."
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-            go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$TAG-plus" -o ../coredns-arm64
-
-          cd ..
-          echo "$TAG" > current_tag.txt
-
-      - name: Push to Repository
-        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
+      - name: Move binary to root and update VERSION
+        if: steps.check_update.outputs.update_needed == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add coredns-arm64 current_tag.txt
-          
-          # 只有在有變更時才 commit
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Build: CoreDNS ${{ steps.check.outputs.tag }} arm64 with plugins"
-            git push origin main
-          fi
+          mv coredns-src/../corednsplus ./
+          echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
+
+      - name: Commit and push changes
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add corednsplus VERSION
+          git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins"
+          git push
