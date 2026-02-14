@@ -3,7 +3,7 @@ name: Update and Build CoreDNS Plus
 on:
   schedule:
     - cron: '0 0 * * *'  # Run daily to check for updates
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:     # Allow manual trigger
 
 jobs:
   build:
@@ -42,19 +42,21 @@ jobs:
         run: |
           git clone https://github.com/coredns/coredns.git --depth 1 --branch ${{ steps.get_version.outputs.latest_version }} coredns-src
 
-      - name: Add third-party plugins to plugin.cfg
+      - name: Install dependencies for unbound plugin (cgo + libunbound)
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          sudo apt update
+          sudo apt install -y libunbound-dev pkg-config build-essential
+
+      - name: Add third-party plugins to plugin.cfg (防重复添加)
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          # Add blocklist plugin for ad blocking
-          echo "blocklist:github.com/relekang/coredns-blocklist" >> plugin.cfg
-          echo "finalize:github.com/tmeckel/coredns-finalizer" >> plugin.cfg
-          echo "unbound:github.com/coredns/unbound" >> plugin.cfg
-          # echo "mysql:github.com/cloud66-oss/coredns_mysql" >> plugin.cfg
-          # Add git plugin for remote zone loading
-          echo "git:github.com/miekg/coredns-git" >> plugin.cfg
-          # Add more third-party plugins that support remote downloading if known
-          # For example, if there's another one: echo "another:github.com/user/another" >> plugin.cfg
+          grep -q "^blocklist:" plugin.cfg || echo "blocklist:github.com/relekang/coredns-blocklist" >> plugin.cfg
+          grep -q "^finalize:" plugin.cfg || echo "finalize:github.com/tmeckel/coredns-finalizer" >> plugin.cfg
+          # unbound 已 archived 6 年，兼容性风险高，建议注释掉或移除
+          # grep -q "^unbound:" plugin.cfg || echo "unbound:github.com/coredns/unbound" >> plugin.cfg
+          grep -q "^git:" plugin.cfg || echo "git:github.com/miekg/coredns-git" >> plugin.cfg
 
       - name: Generate and tidy modules
         if: steps.check_update.outputs.update_needed == 'true'
@@ -67,11 +69,13 @@ jobs:
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
-          GOOS=linux GOARCH=arm64 go build -o ../corednsplus
+          # unbound 需要 CGO_ENABLED=1；如果注释掉 unbound 可改为 CGO_ENABLED=0（静态二进制）
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o ../corednsplus
 
       - name: Move binary to root and update VERSION
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
+          mv ../corednsplus .   # 移到仓库根目录（可选，根据你的 commit 需要）
           echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
 
       - name: Commit and push changes
@@ -80,5 +84,5 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add corednsplus VERSION
-          git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins"
+          git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins" || echo "No changes to commit"
           git push
