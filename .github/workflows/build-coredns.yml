@@ -70,6 +70,9 @@ jobs:
           go mod tidy
           go mod edit -go=1.22
           go mod tidy 
+          # 验证 go.mod 是否真的更新（调试输出）
+          grep '^go ' go.mod || echo "No go directive found!"
+          cat go.mod | grep '^go '  # 应该看到 go 1.22
 
       - name: Build CoreDNS for Linux arm64 (no cgo needed)
         if: steps.check_update.outputs.update_needed == 'true'
