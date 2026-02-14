@@ -68,12 +68,20 @@ jobs:
           cd coredns-src
           go generate
           go mod tidy
-          go mod edit -go=1.22
-          go mod tidy 
-          # 验证 go.mod 是否真的更新（调试输出）
-          grep '^go ' go.mod || echo "No go directive found!"
-          cat go.mod | grep '^go '  # 应该看到 go 1.22
-
+          # 尝试 go mod edit
+          go mod edit -go=1.22 || echo "go mod edit failed, trying sed fallback"
+          
+          # 如果 edit 没生效，用 sed 强制替换 go 行（最可靠）
+          sed -i 's/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?$/go 1.22/' go.mod || true
+          
+          # 多运行 tidy，确保依赖兼容新版本（会升级部分依赖）
+          go mod tidy
+          go mod tidy  # 第二轮有时必要
+          
+          # 调试输出：确认版本
+          echo "Current go.mod go directive:"
+          grep '^go ' go.mod || echo "No go line found!"
+          cat go.mod | head -n 20  # 前20行看整体
       - name: Build CoreDNS for Linux arm64 (no cgo needed)
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
