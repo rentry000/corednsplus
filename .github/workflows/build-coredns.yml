@@ -75,11 +75,20 @@ jobs:
           # mv ../corednsplus .   # 移到仓库根目录
           echo "${{ steps.get_version.outputs.latest_version }}" > VERSION
 
-      - name: Commit and push changes
+      - name: Commit and push changes with Git LFS
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
+          
+          # 初始化 Git LFS（确保 workflow 环境支持 LFS）
+          git lfs install
+          
+          # 添加文件（.gitattributes 应已存在于 repo，如果首次会自动生成指针）
           git add corednsplus VERSION
+          
+          # Commit（如果无变化则跳过）
           git commit -m "Update CoreDNS Plus to ${{ steps.get_version.outputs.latest_version }} with plugins (no unbound)" || echo "No changes to commit"
+          
+          # Push 时会自动处理 LFS 对象上传
           git push
