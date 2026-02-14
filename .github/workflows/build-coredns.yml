@@ -54,9 +54,9 @@ jobs:
           grep -q "^carbolicacid:" plugin.cfg || echo "carbolicacid:github.com/PtrBreak/coredns-carbolicacid" >> plugin.cfg
           grep -q "^filter:" plugin.cfg || echo "filter:github.com/milgradesec/filter" >> plugin.cfg
           grep -q "^responsefilter:" plugin.cfg || echo "responsefilter:github.com/isovalent/responsefilter" >> plugin.cfg
-          # grep -q "^iplimit:" plugin.cfg || echo "iplimit:github.com/fabiant7t/iplimit" >> plugin.cfg
+          grep -q "^iplimit:" plugin.cfg || echo "iplimit:github.com/fabiant7t/iplimit" >> plugin.cfg
           grep -q "^takeover:" plugin.cfg || echo "takeover:github.com/Dk0n9/takeover" >> plugin.cfg
-          grep -q "^blocker:" plugin.cfg || echo "blocker:github.com/icyflame/blocker" >> plugin.cfg
+          # grep -q "^blocker:" plugin.cfg || echo "blocker:github.com/icyflame/blocker" >> plugin.cfg
           grep -q "^dnsredir:" plugin.cfg || echo "dnsredir:github.com/leiless/dnsredir" >> plugin.cfg
           # unbound 已移除（兼容性太差，6年未维护）
           # grep -q "^unbound:" plugin.cfg || echo "unbound:github.com/coredns/unbound" >> plugin.cfg
