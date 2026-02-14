@@ -57,6 +57,7 @@ jobs:
           # grep -q "^iplimit:" plugin.cfg || echo "iplimit:github.com/fabiant7t/iplimit" >> plugin.cfg
           grep -q "^takeover:" plugin.cfg || echo "takeover:github.com/Dk0n9/takeover" >> plugin.cfg
           grep -q "^blocker:" plugin.cfg || echo "blocker:github.com/icyflame/blocker" >> plugin.cfg
+          grep -q "^dnsredir:" plugin.cfg || echo "dnsredir:github.com/leiless/dnsredir" >> plugin.cfg
           # unbound 已移除（兼容性太差，6年未维护）
           # grep -q "^unbound:" plugin.cfg || echo "unbound:github.com/coredns/unbound" >> plugin.cfg
           grep -q "^git:" plugin.cfg || echo "git:github.com/miekg/coredns-git" >> plugin.cfg
