@@ -73,6 +73,7 @@ jobs:
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
           cd coredns-src
+          go env -u GOSUMDB || true
           # unbound 已移除，可用 CGO_ENABLED=0 保持静态二进制
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ../corednsplus
 
