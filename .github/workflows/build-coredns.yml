@@ -76,7 +76,7 @@ jobs:
           
           # 多运行 tidy，确保依赖兼容新版本（会升级部分依赖）
           go mod tidy
-          go mod tidy  # 第二轮有时必要
+          # go mod tidy  # 第二轮有时必要
           
           # 调试输出：确认版本
           echo "Current go.mod go directive:"
