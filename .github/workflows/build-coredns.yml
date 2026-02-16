@@ -63,6 +63,7 @@ jobs:
           grep -q "^ipref:" plugin.cfg || echo "ipref:github.com/ipref/coredns-plugin-ipref" >> plugin.cfg
           grep -q "^etcdhosts:" plugin.cfg || echo "etcdhosts:github.com/etcdhosts/etcdhosts" >> plugin.cfg
           grep -q "^oneaddr:" plugin.cfg || echo "oneaddr:github.com/SenseUnit/oneaddr" >> plugin.cfg
+          grep -q "^nametoip:" plugin.cfg || echo "nametoip:github.com/ToIP-dns/nametoip-coredns" >> plugin.cfg
         
     
           # unbound 已移除（兼容性太差，6年未维护）
