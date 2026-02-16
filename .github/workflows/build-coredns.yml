@@ -70,7 +70,7 @@ jobs:
         run: |
           cd coredns-src
           go generate
-          go mod edit -rereplace github.com/contentful-labs/coredns-nodecache => ../../contentful-labs/coredns-nodecache
+          go mod edit -rereplace github.com/contentful-labs/coredns-nodecache => ./contentful-labs/coredns-nodecache
           go mod tidy
       - name: Build CoreDNS for Linux arm64 (no cgo needed)
         if: steps.check_update.outputs.update_needed == 'true'
