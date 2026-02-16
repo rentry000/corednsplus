@@ -76,7 +76,7 @@ jobs:
          cd coredns-src
          go generate
          # 修改路径为 ../ (上一级) 而不是 ./
-         go mod edit -rereplace github.com/contentful-labs/coredns-nodecache => ../contentful-labs/coredns-nodecache
+         go mod edit -replace=github.com/contentful-labs/coredns-nodecache=../contentful-labs/coredns-nodecache
          go mod tidy
          
       - name: Build CoreDNS for Linux arm64 (no cgo needed)
