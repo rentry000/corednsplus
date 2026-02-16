@@ -60,6 +60,8 @@ jobs:
           grep -q "^dnsredir:" plugin.cfg || echo "dnsredir:github.com/leiless/dnsredir" >> plugin.cfg
           grep -q "^ipset:" plugin.cfg || echo "ipset:github.com/foi/coredns-ipset" >> plugin.cfg
           grep -q "^nodecache:" plugin.cfg || echo "nodecache:github.com/contentful-labs/coredns-nodecache" >> plugin.cfg
+          grep -q "^ipref:" plugin.cfg || echo "ipref:github.com/ipref/coredns-plugin-ipref" >> plugin.cfg
+        
     
           # unbound 已移除（兼容性太差，6年未维护）
           # grep -q "^unbound:" plugin.cfg || echo "unbound:github.com/coredns/unbound" >> plugin.cfg
