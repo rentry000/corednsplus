@@ -64,14 +64,21 @@ jobs:
           # unbound 已移除（兼容性太差，6年未维护）
           # grep -q "^unbound:" plugin.cfg || echo "unbound:github.com/coredns/unbound" >> plugin.cfg
           grep -q "^git:" plugin.cfg || echo "git:github.com/miekg/coredns-git" >> plugin.cfg
+      - name: Checkout coredns-nodecache source
+          # 在 cd coredns-src 之前，先下载插件代码到同级目录
+        run: |
+               git clone https://github.com/contentful-labs/coredns-nodecache.git contentful-labs/coredns-nodecache
+         # 假设你在这里对插件代码进行了修改...
 
       - name: Generate and tidy modules
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
-          cd coredns-src
-          go generate
-          go mod edit -rereplace github.com/contentful-labs/coredns-nodecache => ./contentful-labs/coredns-nodecache
-          go mod tidy
+         cd coredns-src
+         go generate
+         # 修改路径为 ../ (上一级) 而不是 ./
+         go mod edit -rereplace github.com/contentful-labs/coredns-nodecache => ../contentful-labs/coredns-nodecache
+         go mod tidy
+         
       - name: Build CoreDNS for Linux arm64 (no cgo needed)
         if: steps.check_update.outputs.update_needed == 'true'
         run: |
