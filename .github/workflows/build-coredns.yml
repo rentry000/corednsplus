@@ -80,6 +80,7 @@ jobs:
          # 假设你已经通过 require 引入了 github.com/fabiant7t/iplimit
          # 添加 replace 指令，将错误的路径指向当前目录（即你的本地插件代码）
          go mod edit -replace github.com/coredns/coredns/plugin/iplimit=.
+         go get github.com/ipref/common@v1.3.1
          go mod tidy
          
       - name: Build CoreDNS for Linux arm64 (no cgo needed)
