@@ -88,6 +88,8 @@ jobs:
           # 在 cd coredns-src 之前，先下载插件代码到同级目录
         run: |
                git clone https://github.com/contentful-labs/coredns-nodecache.git contentful-labs/coredns-nodecache
+               # [新增] 下载 coredns-ruledforward 插件代码到同级目录
+               git clone https://github.com/hr3lxphr6j/coredns-ruledforward.git coredns-ruledforward
          # 假设你在这里对插件代码进行了修改...
 
       - name: Generate and tidy modules
@@ -97,6 +99,10 @@ jobs:
          go generate
          # 修改路径为 ../ (上一级) 而不是 ./
          go mod edit -replace=github.com/contentful-labs/coredns-nodecache=../contentful-labs/coredns-nodecache
+         # [新增] 修改 ruledforward 路径指向外层目录
+         go mod edit -replace=github.com/hr3lxphr6j/coredns-ruledforward=../coredns-ruledforward
+         # [新增] 注入 ruledforward 依赖版本
+         go mod edit -require=github.com/hr3lxphr6j/coredns-ruledforward@v0.0.0
          # 假设你已经通过 require 引入了 github.com/fabiant7t/iplimit
          # 添加 replace 指令，将错误的路径指向当前目录（即你的本地插件代码）
          go mod edit -replace github.com/coredns/coredns/plugin/iplimit=.
