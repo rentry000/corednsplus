@@ -68,6 +68,16 @@ jobs:
           grep -q "^zoneawareness:" plugin.cfg || echo "zoneawareness:github.com/toredash/zoneawareness" >> plugin.cfg
           grep -q "^coredns-tailscale:" plugin.cfg || echo "coredns-tailscale:github.com/damomurf/coredns-tailscale" >> plugin.cfg
           grep -q "^coredns-pdsql:" plugin.cfg || echo "coredns-pdsql:github.com/wenerme/coredns-pdsql" >> plugin.cfg
+          grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
+          grep -q "^coredns-auto-ipv6-ptr:" plugin.cfg || echo "coredns-auto-ipv6-ptr:github.com/vlcty/coredns-auto-ipv6-ptr" >> plugin.cfg
+          grep -q "^dns-shield:" plugin.cfg || echo "dns-shield:github.com/FredHutch/dns-shield" >> plugin.cfg
+          grep -q "^coredns-ocp-dnsnameresolver:" plugin.cfg || echo "coredns-ocp-dnsnameresolver:github.com/openshift/coredns-ocp-dnsnameresolver" >> plugin.cfg
+          grep -q "^coredns-chinadns:" plugin.cfg || echo "coredns-chinadns:github.com/blahgeek/coredns-chinadns" >> plugin.cfg
+          grep -q "^coredns-warnlist-plugin:" plugin.cfg || echo "coredns-warnlist-plugin:github.com/giantswarm/coredns-warnlist-plugin" >> plugin.cfg
+          grep -q "^coredns-ipin:" plugin.cfg || echo "coredns-ipin:github.com/wenerme/coredns-ipin" >> plugin.cfg
+        
+        
+        
         
     
           # unbound 已移除（兼容性太差，6年未维护）
