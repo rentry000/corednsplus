@@ -85,6 +85,14 @@ jobs:
           grep -q "^coredns-updater-plugin:" plugin.cfg || echo "coredns-updater-plugin:github.com/mauromedda/coredns-updater-plugin" >> plugin.cfg
           grep -q "^coredns-carbolicacid:" plugin.cfg || echo "coredns-carbolicacid:github.com/PtrBreak/coredns-carbolicacid" >> plugin.cfg
           grep -q "^responsefilter:" plugin.cfg || echo "responsefilter:github.com/isovalent/responsefilter" >> plugin.cfg
+          grep -q "^oneaddr:" plugin.cfg || echo "oneaddr:github.com/SenseUnit/oneaddr" >> plugin.cfg
+          grep -q "^coredns_blacklist_watcher:" plugin.cfg || echo "coredns_blacklist_watcher:github.com/MrMohebi/coredns_blacklist_watcher" >> plugin.cfg
+          grep -q "^coredns-merge:" plugin.cfg || echo "coredns-merge:github.com/mattiaforc/coredns-merge" >> plugin.cfg
+          grep -q "^zoneawareness:" plugin.cfg || echo "zoneawareness:github.com/toredash/zoneawareness" >> plugin.cfg
+          grep -q "^coreha:" plugin.cfg || echo "coreha:github.com/shturval-tech/coreha" >> plugin.cfg
+          grep -q "^coredns_iran_resolver:" plugin.cfg || echo "coredns_iran_resolver:github.com/MrMohebi/coredns_iran_resolver" >> plugin.cfg
+          # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
+          # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
           # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
           # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
           # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
