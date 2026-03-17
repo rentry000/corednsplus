@@ -78,7 +78,15 @@ jobs:
           grep -q "^forward2:" plugin.cfg || echo "forward2:github.com/QZLin/forward2" >> plugin.cfg
           grep -q "^coredns-ocp-dnsnameresolver:" plugin.cfg || echo "coredns-ocp-dnsnameresolver:https://github.com/openshift/coredns-ocp-dnsnameresolver" >> plugin.cfg
           grep -q "^coredns-dnsimple:" plugin.cfg || echo "coredns-dnsimple:github.com/dnsimple/coredns-dnsimple" >> plugin.cfg
-          grep -q "^geo:" plugin.cfg || echo "geo:https://github.com/sateffen/coredns-ip-destination-guard" >> plugin.cfg
+          grep -q "^resinfo:" plugin.cfg || echo "resinfo:github.com/torbbang/resinfo" >> plugin.cfg
+          grep -q "^mdns:" plugin.cfg || echo "mdns:https://github.com/blake/external-mdns" >> plugin.cfg
+          grep -q "^coredns_omada:" plugin.cfg || echo "coredns_omada:github.com/dougbw/coredns_omada" >> plugin.cfg
+          grep -q "^nametoip-coredns:" plugin.cfg || echo "nametoip-coredns:github.com/ToIP-dns/nametoip-coredns" >> plugin.cfg
+          grep -q "^coredns-updater-plugin:" plugin.cfg || echo "coredns-updater-plugin:github.com/mauromedda/coredns-updater-plugin" >> plugin.cfg
+          grep -q "^coredns-carbolicacid:" plugin.cfg || echo "coredns-carbolicacid:github.com/PtrBreak/coredns-carbolicacid" >> plugin.cfg
+          grep -q "^responsefilter:" plugin.cfg || echo "responsefilter:github.com/isovalent/responsefilter" >> plugin.cfg
+       # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
+       # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
        # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
        # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
        # grep -q "^geo:" plugin.cfg || echo "geo:github.com/imlonghao/geo" >> plugin.cfg
