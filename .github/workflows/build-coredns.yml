@@ -66,6 +66,8 @@ jobs:
           grep -q "^nametoip:" plugin.cfg || echo "nametoip:github.com/ToIP-dns/nametoip-coredns" >> plugin.cfg
           grep -q "^merge:" plugin.cfg || echo "merge:github.com/mattiaforc/coredns-merge/merge" >> plugin.cfg
           grep -q "^zoneawareness:" plugin.cfg || echo "zoneawareness:github.com/toredash/zoneawareness" >> plugin.cfg
+          grep -q "^coredns-tailscale:" plugin.cfg || echo "coredns-tailscale:github.com/damomurf/coredns-tailscale" >> plugin.cfg
+          grep -q "^coredns-pdsql:" plugin.cfg || echo "coredns-pdsql:github.com/wenerme/coredns-pdsql" >> plugin.cfg
         
     
           # unbound 已移除（兼容性太差，6年未维护）
