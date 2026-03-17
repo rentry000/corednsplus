@@ -75,7 +75,7 @@ jobs:
           grep -q "^coredns-warnlist-plugin:" plugin.cfg || echo "coredns-warnlist-plugin:github.com/giantswarm/coredns-warnlist-plugin" >> plugin.cfg
           grep -q "^coredns-ipin:" plugin.cfg || echo "coredns-ipin:github.com/wenerme/coredns-ipin" >> plugin.cfg
           grep -q "^ruledforward:" plugin.cfg || echo "ruledforward:github.com/hr3lxphr6j/coredns-ruledforward" >> plugin.cfg
-          grep -q "^forward2:" plugin.cfg || echo "forward2:github.com/QZLin/forward2" >> plugin.cfg
+          # grep -q "^forward2:" plugin.cfg || echo "forward2:github.com/QZLin/forward2" >> plugin.cfg
           grep -q "^coredns-ocp-dnsnameresolver:" plugin.cfg || echo "coredns-ocp-dnsnameresolver:https://github.com/openshift/coredns-ocp-dnsnameresolver" >> plugin.cfg
           grep -q "^coredns-dnsimple:" plugin.cfg || echo "coredns-dnsimple:github.com/dnsimple/coredns-dnsimple" >> plugin.cfg
           # grep -q "^resinfo:" plugin.cfg || echo "resinfo:github.com/torbbang/resinfo/plugin/resinfo" >> plugin.cfg
